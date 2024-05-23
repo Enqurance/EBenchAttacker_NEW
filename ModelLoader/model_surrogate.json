@@ -1,0 +1,29 @@
+[
+    {
+        "Model_Name": "GPT-3.5-Turbo-0125",
+        "Model_Path": null,
+        "Tokenizer_Path": null,
+        "Model_Type": "API",
+        "Producer": "OpenAI",
+        "ProxyOn": true,
+        "ProxyUrl": "https://api.openai-proxy.org"
+    },
+    {
+        "Model_Name": "LLaMA-3-8B-Instruct",
+        "Model_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
+        "Model_Type": "Pretrained",
+        "Producer": "Meta",
+        "ProxyOn": false,
+        "ProxyUrl": null
+    },
+    {
+        "Model_Name": "LLaMA-2-7B-chat-hf",
+        "Model_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
+        "Model_Type": "Pretrained",
+        "Producer": "Meta",
+        "ProxyOn": false,
+        "ProxyUrl": null
+    }
+]
