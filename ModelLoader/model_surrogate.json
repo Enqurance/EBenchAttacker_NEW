@@ -10,8 +10,8 @@
     },
     {
         "Model_Name": "LLaMA-3-8B-Instruct",
-        "Model_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
-        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
+        "Model_Path": "/home/oem2024/Zijie/Models/llama-3-8B-Instruct",
+        "Tokenizer_Path": "/home/oem2024/Zijie/Models/llama-3-8B-Instruct",
         "Model_Type": "Pretrained",
         "Producer": "Meta",
         "ProxyOn": false,
@@ -19,8 +19,8 @@
     },
     {
         "Model_Name": "LLaMA-2-7B-chat-hf",
-        "Model_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
-        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
+        "Model_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
+        "Tokenizer_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
         "Model_Type": "Pretrained",
         "Producer": "Meta",
         "ProxyOn": false,

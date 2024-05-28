@@ -1,20 +1,32 @@
 [
     {
+        "Model_Name": "Baichuan2-13B-Chat",
+        "Model_Path": "/home/oem2024/Zijie/Models/baichuan2-13B-chat",
+        "Tokenizer_Path": "/home/oem2024/Zijie/Models/baichuan2-13B-chat",
+        "Model_Type": "Pretrained",
+        "Producer": "Meta",
+        "ProxyOn": false,
+        "ProxyUrl": null,
+        "Test": false
+    },
+    {
         "Model_Name": "GPT-3.5-Turbo-0125",
         "Model_Path": null,
         "Tokenizer_Path": null,
         "Model_Type": "API",
         "Producer": "OpenAI",
         "ProxyOn": true,
-        "ProxyUrl": "https://api.openai-proxy.org"
+        "ProxyUrl": "https://api.openai-proxy.org",
+        "Test": false
     },
     {
         "Model_Name": "LLaMA-2-7B-chat-hf",
-        "Model_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
-        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
+        "Model_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
+        "Tokenizer_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
         "Model_Type": "Pretrained",
         "Producer": "Meta",
         "ProxyOn": false,
-        "ProxyUrl": null
+        "ProxyUrl": null,
+        "Test": true
     }
 ]

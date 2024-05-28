@@ -4,6 +4,9 @@ from Tools import PrintWithBorders
 import openai
 import anthropic
 import os
+import torch
+from fastchat.model import get_conversation_template
+
 
 class APIModel():
     def __init__(self, model, model_info, model_args):
@@ -15,7 +18,7 @@ class APIModel():
         self.token_used = 0
 
         
-    def Query(self, content):
+    def Generate(self, content):
         if str(type(self.model)) == "<class 'openai.OpenAI'>":
             response = self.model.chat.completions.create(
                 model=self.model_name.lower(),
@@ -57,10 +60,66 @@ class CasualModel():
         self.max_tokens = model_args["max_length"]
         self.temperature = model_args["temperature"]
         self.do_sample = model_args["do_sample"]
+        self.template_name = None
         
+        if "llama-2" in self.model_name.lower():
+            self.template_name = "llama-2"
+        elif "baichuan2" in model_name.lower():
+            self.template_name = "bachuan2"
+        else:
+            pass
         
-    def Query(self, content):
-        pass
+    """
+        This function is used for a single query
+    """    
+    def Generate(self, content):
+        inputs = self.tokenizer(content, return_tensors='pt')
+        
+        if self.temperature > 0:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=self.max_tokens, 
+                do_sample=self.do_sample,
+                temperature=self.temperature,
+            )
+        else:
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=self.max_tokens, 
+                do_sample=False,
+                temperature=1,
+            )
+            
+        if not self.model.config.is_encoder_decoder:
+            output_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+
+        output = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        
+        del inputs, output_ids
+        torch.cuda.empty_cache()
+        
+        return output
+
+
+    def BatchGenerate(self, content_list):
+        batchsize = len(content_list)
+        convs_list = [self.ConvTemplate() for _ in range(batchsize)]
+        full_prompts = []
+        for conv, prompt in zip(convs_list, content_list):
+            conv.append_message(conv.roles[0], prompt)
+            conv.append_message(conv.roles[1], None) 
+            full_prompts.append(conv.get_prompt())
+        
+        outputs_list = [self.Generate(single_prompt) for single_prompt in full_prompts]
+        return outputs_list
+    
+    
+    def ConvTemplate(self):
+        template = get_conversation_template(self.template_name)
+        if template.name == 'llama-2':
+            template.sep2 = template.sep2.strip()
+        print(template)
+        return template
 
 
 def LoadTokenizerAndModel(

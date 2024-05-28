@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='This is a attacking benchmark for 
 parser.add_argument('--model_info_path', type=str, default="./ModelLoader/model_info.json",
                     help='This argument assigns the json file which stores the information of models')
 
-parser.add_argument('--dataset', type=str, default="Opus", choices=["Haiku", "Sonnet", "Opus", "Test"],
+parser.add_argument('--dataset', type=str, default="Test", choices=["Haiku", "Sonnet", "Opus", "Test"],
                     help='This argument assigns the size of EBench dataset to use')
 
 parser.add_argument('--attacks',type=str, nargs='+', 
@@ -24,11 +24,19 @@ parser.add_argument('--attacks',type=str, nargs='+',
 parser.add_argument('--pair_attacker',type=str, default="LLaMA-2-7B-chat-hf",
                     help='This list assigns the attacker model for PAIR method')
 
+parser.add_argument('--pair_judger',type=str, default="GPT-3.5-Turbo-0125",
+                    help='This list assigns the attacker model for PAIR method')
+
 model_args = {
     "max_length": 256,
     "temperature": 0.9,
-    "do_sample": False,
+    "do_sample": True,
 }
+
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model_loaded = {}
 
 
 def LoadModelInfo(model_info_path):
@@ -62,9 +70,13 @@ def LoadEBenchDataset():
 
 
 def LoadSingleModel(model_info):
+    if model_info["Model_Name"] in model_loaded.keys():
+        PrintWithBorders("Model " + model_info["Model_Name"] + " already loaded!")
+        return model_info["Model_Name"]
+    
     if model_info["Model_Type"] == "Pretrained":
         model = LoadTokenizerAndModel(
-        model_info=model_info, 
+            model_info=model_info, 
             model_args=model_args,   
             device=device,
         )
@@ -76,6 +88,7 @@ def LoadSingleModel(model_info):
     else:
         raise Exception("Model type not included!") 
     
+    model_info["Model_Name"] = model
     return model
 
 
@@ -83,24 +96,29 @@ def main():
     print(args)
     
     models_info = LoadModelInfo(args.model_info_path)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     data = LoadEBenchDataset()
     
     for model_info in models_info:
-        PrintWithBorders("Testing model " + model_info["Model_Name"])
-        target_model = LoadSingleModel(model_info)
+        if model_info["Test"] == True:
+            PrintWithBorders("Testing model " + model_info["Model_Name"])
+            target_model = LoadSingleModel(model_info)
         
-        for attack in args.attacks:
-            attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
-            attack_model = LoadSingleModel(attacker_model_info)
-            PAIRAttack(attack_model, target_model, data)
+            for attack in args.attacks:
+                
+                if attack == "pair":
+                    # Load attacker model for pair
+                    attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
+                    attack_model = LoadSingleModel(attacker_model_info)
+                    
+                    # Load judger model for pair
+                    judger_model = GetModelInfo(args.pair_judger, models_info)
+                    judger_model = LoadSingleModel(attacker_model_info)
+                    
+                    # Start attacking with pair
+                    PAIRAttack(attack_model, target_model, data)
         
         
-        
-        
-
-
 if __name__ == "__main__":
     args = parser.parse_args()
     main()
