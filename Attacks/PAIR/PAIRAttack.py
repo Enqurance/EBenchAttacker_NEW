@@ -1,28 +1,27 @@
 from .Prompts import GetAttackerSystemPrompt
-from .Common import GetInitMsg, ProcessTargetResponse, ExtractJson
+from .Common import GetInitMsg, ExtractJson
 from tqdm import tqdm
 
 batchsize = 1
-iteration = 1
+iteration = 2
 max_attack_attempts = 5
 keep_last_n = 3
 
-def PAIRAttack(attack_model, target_model, data, language="English"):
+
+def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="English"):
+    """
+        We start the Prompting and Iterative Refinement methods using this funciton.
+    """
     # TODO:
-    #   Finish PAIR method
+    #   Finished PAIR method on May 29, to be tested.
     
     json_data = data["json"]
-    
     system_prompts = [GetAttackerSystemPrompt(item[language], item["Goal"]) for item in json_data]
+    logger.Set("PAIR", attack_model.model_name)
 
-    # judgeLM = load_judge(args)
-    
-    # logger = WandBLogger(args, system_prompt)
-
-    # # Initialize conversations
-    
-    for i, item in tqdm(enumerate(json_data), desc="Processing", unit="item"):
-        question, goal, prompt = item[language], item["Goal"], system_prompts[i]
+    # Initialize conversations
+    for i, item in tqdm(enumerate(json_data), desc="Processing", unit="harmful question"):
+        question, goal, id_, prompt = item[language], item["Goal"], item["id"], system_prompts[i]
         
         init_msg = GetInitMsg(question, goal)
         processed_response_list = [init_msg for _ in range(batchsize)]
@@ -31,45 +30,39 @@ def PAIRAttack(attack_model, target_model, data, language="English"):
         for conv in convs_list:
             conv.set_system_message(prompt)
     
-
-        # # Begin PAIR
+        # Begin PAIR for a single query
         for i in range(1, iteration + 1):
-            print(f"""\n{'='*36}\nIteration: {i}\n{'='*36}\n""")
-            if iteration > 1:
-                processed_response_list = [ProcessTargetResponse(goal_response, score, question, goal) for goal_response, score in zip(goal_response_list, judge_scores)]
-
+            print(f"""{'='*36}\nIteration: {i}\n{'='*36}""")
             # Get adversarial prompts and improvement
             extracted_attack_list = GetAttack(attack_model, convs_list, processed_response_list)
-            print("Finished getting adversarial prompts.")
 
             # Extract prompts and improvements
             adv_prompt_list = [attack["prompt"] for attack in extracted_attack_list]
-            improv_list = [attack["improvement"] for attack in extracted_attack_list]
+            # improv_list = [attack["improvement"] for attack in extracted_attack_list]
                 
             # Get target responses
             target_response_list = target_model.BatchGenerate(adv_prompt_list)
-            print("Finished getting target responses.")
-
-            # TODO
-            #   Add a judge model here
         
             # Print prompts, responses, and scores
-            for i, (prompt, improv, response) in enumerate(zip(adv_prompt_list, improv_list, target_response_list)):
-                print(f"{i+1}/{batchsize}\n\n[IMPROVEMENT]:\n{improv} \n\n[PROMPT]:\n{prompt} \n\n[RESPONSE]:\n{response}\n\n")
+            # for i, (prompt, improv, response) in enumerate(zip(adv_prompt_list, improv_list, target_response_list)):
+            #     print(f"{i+1}/{batchsize}\n\n[IMPROVEMENT]:\n{improv} \n\n[PROMPT]:\n{prompt} \n\n[RESPONSE]:\n{response}\n\n")
 
-            # TODO
-            #   Add a logger here
+            # Judge result here
+            for response in target_response_list:
+                judge_result = judge_model.Judge(question, response, id_)
 
             # Truncate conversation to avoid context length issues
             for i, conv in enumerate(convs_list):
                 conv.messages = conv.messages[-2*(keep_last_n):]
-
-            # TODO
-            # Early stopping if designated
-
+            
+            # Early stopping
+            if judge_result["Judge_Result"] == 1:
+                break
+        logger.Log(judge_result)
 
 def GetAttack(model, convs_list, prompts_list):
         """
+        Explaination:
         Generates responses for a batch of conversations and prompts using a language model. 
         Only valid outputs in proper JSON format are returned. If an output isn't generated 
         successfully after max_attack_attempts, it's returned as None.
@@ -81,9 +74,6 @@ def GetAttack(model, convs_list, prompts_list):
         Returns:
         - List of generated outputs (dictionaries) or None for failed generations.
         """
-        
-        print(model.model_name)
-        
         assert len(convs_list) == len(prompts_list), "Mismatch between number of conversations and prompts."
         
         batchsize = len(convs_list)
@@ -107,14 +97,12 @@ def GetAttack(model, convs_list, prompts_list):
                 conv.append_message(conv.roles[1], init_message)
                 full_prompts.append(conv.get_prompt()[:-len(conv.sep2)])
             
-        for attempt in range(max_attack_attempts):
+        for _ in range(max_attack_attempts):
             # Subset conversations based on indices to regenerate
             full_prompts_subset = [full_prompts[i] for i in indices_to_regenerate]
 
             # Generate outputs
             outputs_list = [model.Generate(single_prompt) for single_prompt in full_prompts_subset]
-            
-            print(outputs_list)
             
             # Check for valid outputs and update the list
             new_indices_to_regenerate = []
@@ -139,5 +127,4 @@ def GetAttack(model, convs_list, prompts_list):
         if any([output for output in valid_outputs if output is None]):
             print(f"Failed to generate output after {max_attack_attempts} attempts. Terminating.")
             
-        print(valid_outputs)
         return valid_outputs

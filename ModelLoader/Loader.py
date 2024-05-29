@@ -18,17 +18,18 @@ class APIModel():
         self.token_used = 0
 
         
-    def Generate(self, content):
+    def Generate(self, content, prompt="You are a helpful AI assistant."):
         if str(type(self.model)) == "<class 'openai.OpenAI'>":
             response = self.model.chat.completions.create(
                 model=self.model_name.lower(),
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 messages=[
+                    {"role": "system", "content": prompt},
                     {"role": "user", "content": content},
                 ]
             )
-            self.used_token += response.usage.total_tokens
+            self.token_used += response.usage.total_tokens
             return response.choices[0].message.content
         elif str(type(self.model)) == "<class 'anthropic.Anthropic'>":
             response = self.model.messages.create(
@@ -36,11 +37,12 @@ class APIModel():
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
                 messages=[
+                    {"role": "system", "content": prompt},
                     {"role": "user", "content": content}
                 ]
             )
-            self.used_token += response.usage.input_tokens
-            self.used_token += response.usage.output_tokens
+            self.token_used += response.usage.input_tokens
+            self.token_used += response.usage.output_tokens
             return response.content[0].text
         else:
             raise ValueError("Unrecognized client")
@@ -53,7 +55,7 @@ class APIModel():
 
 
 class CasualModel():
-    def __init__(self, model, tokenizer, model_info, model_args):
+    def __init__(self, model, tokenizer, model_info, model_args, device):
         self.model = model
         self.tokenizer = tokenizer
         self.model_name = model_info["Model_Name"]
@@ -61,10 +63,11 @@ class CasualModel():
         self.temperature = model_args["temperature"]
         self.do_sample = model_args["do_sample"]
         self.template_name = None
+        self.device = device
         
         if "llama-2" in self.model_name.lower():
             self.template_name = "llama-2"
-        elif "baichuan2" in model_name.lower():
+        elif "baichuan2" in self.model_name.lower():
             self.template_name = "bachuan2"
         else:
             pass
@@ -73,7 +76,7 @@ class CasualModel():
         This function is used for a single query
     """    
     def Generate(self, content):
-        inputs = self.tokenizer(content, return_tensors='pt')
+        inputs = self.tokenizer(content, return_tensors='pt').to(self.device)
         
         if self.temperature > 0:
             output_ids = self.model.generate(
@@ -118,7 +121,6 @@ class CasualModel():
         template = get_conversation_template(self.template_name)
         if template.name == 'llama-2':
             template.sep2 = template.sep2.strip()
-        print(template)
         return template
 
 
@@ -143,7 +145,7 @@ def LoadTokenizerAndModel(
         do_sample=model_args["do_sample"],
     ).to(device)
     
-    return CasualModel(model, tokenizer, model_info, model_args)
+    return CasualModel(model, tokenizer, model_info, model_args, device)
     
     
 def LoadAPIModel(

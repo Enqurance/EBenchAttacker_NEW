@@ -2,11 +2,18 @@ import json
 import pandas as pd
 import os
 import argparse
-from datetime import datetime
 import torch
+import warnings
+
+warnings.filterwarnings("ignore")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from ModelLoader import LoadTokenizerAndModel, LoadAPIModel
-from Tools import PrintWithBorders
+from Tools import PrintWithBorders, GetTime, Logger
 from Attacks import PAIRAttack
+from Judge import Judger
+
+
 
 
 parser = argparse.ArgumentParser(description='This is a attacking benchmark for LLMs developed by Enqurance Lin')
@@ -18,7 +25,7 @@ parser.add_argument('--dataset', type=str, default="Test", choices=["Haiku", "So
                     help='This argument assigns the size of EBench dataset to use')
 
 parser.add_argument('--attacks',type=str, nargs='+', 
-                    choices=['direct', 'multilingual', 'pair', 'gptfuzz', 'gcg', 'gcg_transfer', 'autodan', 'visual'],
+                    choices=['Direct', 'Multilingual', 'PAIR', 'GPTFUZZER', 'GCG', 'GCG_Transfer', 'AutoDAN', 'Visual'],
                     help='This list assigns the methods for attacking')
 
 parser.add_argument('--pair_attacker',type=str, default="LLaMA-2-7B-chat-hf",
@@ -37,7 +44,7 @@ model_args = {
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model_loaded = {}
-
+time_str = GetTime()
 
 def LoadModelInfo(model_info_path):
     with open(model_info_path, "r") as file:
@@ -70,9 +77,11 @@ def LoadEBenchDataset():
 
 
 def LoadSingleModel(model_info):
-    if model_info["Model_Name"] in model_loaded.keys():
-        PrintWithBorders("Model " + model_info["Model_Name"] + " already loaded!")
-        return model_info["Model_Name"]
+    model_name = model_info["Model_Name"]
+    print(model_name)
+    if model_name in model_loaded.keys():
+        PrintWithBorders("Model " + model_name + " already loaded!")
+        return model_loaded[model_name]
     
     if model_info["Model_Type"] == "Pretrained":
         model = LoadTokenizerAndModel(
@@ -81,14 +90,14 @@ def LoadSingleModel(model_info):
             device=device,
         )
     elif model_info["Model_Type"] == "API":
-            model = LoadAPIModel(
+        model = LoadAPIModel(
             model_info=model_info,
             model_args=model_args
         )
     else:
         raise Exception("Model type not included!") 
     
-    model_info["Model_Name"] = model
+    model_loaded[model_name] = model
     return model
 
 
@@ -96,27 +105,29 @@ def main():
     print(args)
     
     models_info = LoadModelInfo(args.model_info_path)
-    
     data = LoadEBenchDataset()
+    logger = Logger(time_str)
     
     for model_info in models_info:
         if model_info["Test"] == True:
             PrintWithBorders("Testing model " + model_info["Model_Name"])
             target_model = LoadSingleModel(model_info)
-        
+            
+
             for attack in args.attacks:
                 
-                if attack == "pair":
+                if attack.lower() == "pair":
                     # Load attacker model for pair
                     attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
                     attack_model = LoadSingleModel(attacker_model_info)
                     
-                    # Load judger model for pair
-                    judger_model = GetModelInfo(args.pair_judger, models_info)
-                    judger_model = LoadSingleModel(attacker_model_info)
+                    # Load judge model for pair
+                    judge_model_info = GetModelInfo(args.pair_judger, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
                     
                     # Start attacking with pair
-                    PAIRAttack(attack_model, target_model, data)
+                    PAIRAttack(attack_model, target_model, judge_model, data, logger)
+                    
         
         
 if __name__ == "__main__":

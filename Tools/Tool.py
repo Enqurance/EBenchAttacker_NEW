@@ -1,3 +1,5 @@
+import time
+
 def PrintWithBorders(info, border_char='-', width=50):
     """
     This function is used for printing information with border
@@ -19,3 +21,16 @@ def PrintWithBorders(info, border_char='-', width=50):
         print('| ' + line.ljust(content_width) + ' |')
     
     print(border)
+    
+
+def GetTime():
+    current_time = time.localtime()
+    year = current_time.tm_year
+    month = current_time.tm_mon
+    day = current_time.tm_mday
+    hour = current_time.tm_hour
+    minute = current_time.tm_min
+    second = current_time.tm_sec
+    formatted_time = f"{year}_{month:02d}_{day:02d}_{hour:02d}_{minute:02d}_{second:02d}"
+
+    return formatted_time

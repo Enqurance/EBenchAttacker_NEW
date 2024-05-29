@@ -16,7 +16,7 @@
         "Model_Type": "API",
         "Producer": "OpenAI",
         "ProxyOn": true,
-        "ProxyUrl": "https://api.openai-proxy.org",
+        "ProxyUrl": "https://api.openai-proxy.org/v1",
         "Test": false
     },
     {
