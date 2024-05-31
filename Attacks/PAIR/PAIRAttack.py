@@ -6,6 +6,7 @@ batchsize = 1
 iteration = 2
 max_attack_attempts = 5
 keep_last_n = 3
+early_stopping = False
 
 
 def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="English"):
@@ -17,10 +18,10 @@ def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="
     
     json_data = data["json"]
     system_prompts = [GetAttackerSystemPrompt(item[language], item["Goal"]) for item in json_data]
-    logger.Set("PAIR", attack_model.model_name)
+    logger.Set("PAIR", target_model.model_name)
 
     # Initialize conversations
-    for i, item in tqdm(enumerate(json_data), desc="Processing", unit="harmful question"):
+    for i, item in enumerate(tqdm(json_data, desc="Processing", unit="harmful question")):
         question, goal, id_, prompt = item[language], item["Goal"], item["id"], system_prompts[i]
         
         init_msg = GetInitMsg(question, goal)
@@ -32,7 +33,7 @@ def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="
     
         # Begin PAIR for a single query
         for i in range(1, iteration + 1):
-            print(f"""{'='*36}\nIteration: {i}\n{'='*36}""")
+            print(f"""\n{'='*36}\nIteration: {i}\n{'='*36}""")
             # Get adversarial prompts and improvement
             extracted_attack_list = GetAttack(attack_model, convs_list, processed_response_list)
 
@@ -43,22 +44,18 @@ def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="
             # Get target responses
             target_response_list = target_model.BatchGenerate(adv_prompt_list)
         
-            # Print prompts, responses, and scores
-            # for i, (prompt, improv, response) in enumerate(zip(adv_prompt_list, improv_list, target_response_list)):
-            #     print(f"{i+1}/{batchsize}\n\n[IMPROVEMENT]:\n{improv} \n\n[PROMPT]:\n{prompt} \n\n[RESPONSE]:\n{response}\n\n")
-
             # Judge result here
-            for response in target_response_list:
-                judge_result = judge_model.Judge(question, response, id_)
+            for i, response in enumerate(target_response_list):
+                judge_result = judge_model.Judge(question, response, id_, prompt=adv_prompt_list[i])
 
             # Truncate conversation to avoid context length issues
             for i, conv in enumerate(convs_list):
                 conv.messages = conv.messages[-2*(keep_last_n):]
             
             # Early stopping
-            if judge_result["Judge_Result"] == 1:
+            if judge_result["Judge_Result"] == 1 and early_stopping:
                 break
-        logger.Log(judge_result)
+            logger.Log(judge_result)
 
 def GetAttack(model, convs_list, prompts_list):
         """

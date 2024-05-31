@@ -10,7 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from ModelLoader import LoadTokenizerAndModel, LoadAPIModel
 from Tools import PrintWithBorders, GetTime, Logger
-from Attacks import PAIRAttack
+from Attacks import PAIRAttack, GPTFUZZERAttack
 from Judge import Judger
 
 
@@ -33,6 +33,12 @@ parser.add_argument('--pair_attacker',type=str, default="LLaMA-2-7B-chat-hf",
 
 parser.add_argument('--pair_judger',type=str, default="GPT-3.5-Turbo-0125",
                     help='This list assigns the attacker model for PAIR method')
+
+parser.add_argument('--gptfuzzer_model', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This list assigns the fuzzer model for GPTFUZZER method')
+
+parser.add_argument('--gptfuzzer_judge_model', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This list assigns the fuzzer model for GPTFUZZER method')
 
 model_args = {
     "max_length": 256,
@@ -113,22 +119,39 @@ def main():
             PrintWithBorders("Testing model " + model_info["Model_Name"])
             target_model = LoadSingleModel(model_info)
             
-
+            # Begin testing one model here
             for attack in args.attacks:
-                
                 if attack.lower() == "pair":
-                    # Load attacker model for pair
+                    # Load attacker model for PAIR
                     attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
                     attack_model = LoadSingleModel(attacker_model_info)
                     
-                    # Load judge model for pair
+                    # Load judge model for PAIR
                     judge_model_info = GetModelInfo(args.pair_judger, models_info)
                     judge_model = Judger(LoadSingleModel(judge_model_info))
                     
-                    # Start attacking with pair
+                    # Start attacking with PAIR
                     PAIRAttack(attack_model, target_model, judge_model, data, logger)
+                
+                    # Release memory
+                    del attack_model, judge_model
+                    torch.cuda.empty_cache()
+
+                elif attack.lower() == "gptfuzzer":
+                    # Load fuzz model for GPTFUZZER
+                    fuzz_model_info = GetModelInfo(args.gptfuzzer_model, models_info)
+                    fuzz_model = LoadSingleModel(fuzz_model_info)
                     
-        
+                    # Load judge model for GPTFUZZER
+                    judge_model_info = GetModelInfo(args.gptfuzzer_judge_model, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # Start attacking with GPTFUZZER
+                    GPTFUZZERAttack(fuzz_model, target_model, judge_model, data, logger)
+                    
+                
+            del target_model
+            torch.cuda.empty_cache()
         
 if __name__ == "__main__":
     args = parser.parse_args()

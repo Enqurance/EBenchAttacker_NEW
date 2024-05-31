@@ -6,6 +6,10 @@ import anthropic
 import os
 import torch
 from fastchat.model import get_conversation_template
+from rich.console import Console
+from rich.panel import Panel
+
+console = Console()
 
 
 class APIModel():
@@ -20,30 +24,40 @@ class APIModel():
         
     def Generate(self, content, prompt="You are a helpful AI assistant."):
         if str(type(self.model)) == "<class 'openai.OpenAI'>":
-            response = self.model.chat.completions.create(
-                model=self.model_name.lower(),
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": content},
-                ]
-            )
-            self.token_used += response.usage.total_tokens
-            return response.choices[0].message.content
+            try:
+                response = self.model.chat.completions.create(
+                    model=self.model_name.lower(),
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": content},
+                    ]
+                )
+                self.token_used += response.usage.total_tokens
+                return response.choices[0].message.content
+            except Exception as e:
+                title, text = "Loader Info", f"OpenAI API call failed due to {e}."
+                panel = Panel(text, title=title, border_style="red")
+                console.print(panel)
         elif str(type(self.model)) == "<class 'anthropic.Anthropic'>":
-            response = self.model.messages.create(
-                model=self.model_name.lower(),
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": content}
-                ]
-            )
-            self.token_used += response.usage.input_tokens
-            self.token_used += response.usage.output_tokens
-            return response.content[0].text
+            try:
+                response = self.model.messages.create(
+                    model=self.model_name.lower(),
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": content}
+                    ]
+                )
+                self.token_used += response.usage.input_tokens
+                self.token_used += response.usage.output_tokens
+                return response.content[0].text
+            except Exception as e:
+                title, text = "Loader Info", f"Claude API call failed due to {e}."
+                panel = Panel(text, title=title, border_style="red")
+                console.print(panel)
         else:
             raise ValueError("Unrecognized client")
     
