@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from Tools import PrintWithBorders
 
+import math
 import openai
 import anthropic
 import os
@@ -22,12 +23,12 @@ class APIModel():
         self.token_used = 0
 
         
-    def Generate(self, content, prompt="You are a helpful AI assistant."):
+    def Generate(self, content, prompt="You are a helpful AI assistant.", max_tokens=128):
         if str(type(self.model)) == "<class 'openai.OpenAI'>":
             try:
                 response = self.model.chat.completions.create(
                     model=self.model_name.lower(),
-                    max_tokens=self.max_tokens,
+                    max_tokens=max(self.max_tokens, max_tokens),
                     temperature=self.temperature,
                     messages=[
                         {"role": "system", "content": prompt},
@@ -83,26 +84,28 @@ class CasualModel():
             self.template_name = "llama-2"
         elif "baichuan2" in self.model_name.lower():
             self.template_name = "bachuan2"
+        elif "vicuna" in self.model_name.lower():
+            self.template_name = "vicuna"
         else:
             pass
         
     """
         This function is used for a single query
     """    
-    def Generate(self, content):
+    def Generate(self, content, max_tokens=128):
         inputs = self.tokenizer(content, return_tensors='pt').to(self.device)
         
         if self.temperature > 0:
             output_ids = self.model.generate(
                 **inputs,
-                max_new_tokens=self.max_tokens, 
+                max_new_tokens=max(self.max_tokens, max_tokens), 
                 do_sample=self.do_sample,
                 temperature=self.temperature,
             )
         else:
             output_ids = self.model.generate(
                 **inputs,
-                max_new_tokens=self.max_tokens, 
+                max_new_tokens=max(self.max_tokens, max_tokens), 
                 do_sample=False,
                 temperature=1,
             )
@@ -148,6 +151,7 @@ def LoadTokenizerAndModel(
         pretrained_model_name_or_path=model_info["Tokenizer_Path"],
         trust_remote_code=True,
         local_files_only=True,
+        torch_dtype=torch.float16,
     )
     
     model = AutoModelForCausalLM.from_pretrained(
@@ -157,6 +161,7 @@ def LoadTokenizerAndModel(
         max_length=model_args["max_length"],
         temperature=model_args["temperature"],
         do_sample=model_args["do_sample"],
+        torch_dtype=torch.float16,
     ).to(device)
     
     return CasualModel(model, tokenizer, model_info, model_args, device)

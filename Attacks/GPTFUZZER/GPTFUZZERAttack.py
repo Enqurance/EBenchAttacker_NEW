@@ -12,9 +12,7 @@ from .Fuzzer.Core import GPTFuzzer
 seed_path = "./Attacks/GPTFUZZER/assets/GPTFuzzer.csv"          # The path to the seed file, str
 energy = 1                                                      # The energy of the fuzzing proces, int
 max_jailbreak = 5                                               # The maximum jailbreak number, int, >0
-max_query = 1                                                   # The maximum number of queries, int
-max_reject = -1                                                 # The maximum reject number, int
-max_iteration = 10                                              # The maximum iteration number, int
+max_iteration = 10                                               # The maximum iteration number, int
 seed_selection_strategy = 'round_robin'                         # The seed selection strategy, str
 
 
@@ -23,7 +21,7 @@ def GPTFUZZERAttack(fuzz_model, target_model, judge_model, data, logger, languag
     initial_seeds = pd.read_csv(seed_path)['text'].tolist()
     
     # Set logger
-    logger.Set("PAIR", target_model.model_name)
+    logger.Set("GPTFUZZER", target_model.model_name)
     json_data = data["json"]
     
     # Start GPTFUZZER here
@@ -49,9 +47,8 @@ def GPTFUZZERAttack(fuzz_model, target_model, judge_model, data, logger, languag
             select_policy=MCTSExploreSelectPolicy(),
             energy=energy,
             max_jailbreak=max_jailbreak,
-            max_query=max_query,
-            max_reject=max_reject,
             max_iteration=max_iteration,
-            target_name=target_model.model_name
+            target_name=target_model.model_name,
+            early_stop=True
         )
         fuzzer.run()

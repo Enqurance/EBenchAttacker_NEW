@@ -1,10 +1,10 @@
 [
     {
         "Model_Name": "Baichuan2-13B-Chat",
-        "Model_Path": "/home/oem2024/Zijie/Models/baichuan2-13B-chat",
-        "Tokenizer_Path": "/home/oem2024/Zijie/Models/baichuan2-13B-chat",
+        "Model_Path": "/home/jxlab/gaosq/Models/baichuan2-13B-chat",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/baichuan2-13B-chat",
         "Model_Type": "Pretrained",
-        "Producer": "Meta",
+        "Producer": "Baichuan",
         "ProxyOn": false,
         "ProxyUrl": null,
         "Test": false
@@ -21,12 +21,42 @@
     },
     {
         "Model_Name": "LLaMA-2-7B-chat-hf",
-        "Model_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
-        "Tokenizer_Path": "/home/oem2024/Zijie/Models/llama-2-7b-chat-hf",
+        "Model_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-2-7b-chat-hf",
         "Model_Type": "Pretrained",
         "Producer": "Meta",
         "ProxyOn": false,
         "ProxyUrl": null,
         "Test": true
+    },
+    {
+        "Model_Name": "LLaMA-3-8B-Instruct",
+        "Model_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/llama-3-8b-instruct",
+        "Model_Type": "Pretrained",
+        "Producer": "Meta",
+        "ProxyOn": false,
+        "ProxyUrl": null,
+        "Test": false
+    },
+    {
+        "Model_Name": "Gemma-7B",
+        "Model_Path": "/home/jxlab/gaosq/Models/gemma-7b",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/gemma-7b",
+        "Model_Type": "Pretrained",
+        "Producer": "Google",
+        "ProxyOn": false,
+        "ProxyUrl": null,
+        "Test": false
+    },
+    {
+        "Model_Name": "Vicuna-13B-v1.5",
+        "Model_Path": "/home/jxlab/gaosq/Models/vicuna-13b-v1.5",
+        "Tokenizer_Path": "/home/jxlab/gaosq/Models/vicuna-13b-v1.5",
+        "Model_Type": "Pretrained",
+        "Producer": "LMSYS",
+        "ProxyOn": false,
+        "ProxyUrl": null,
+        "Test": false
     }
 ]

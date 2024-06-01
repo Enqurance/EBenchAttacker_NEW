@@ -8,6 +8,7 @@ class Logger():
         self.attack_method = None
         self.attack_model = None
         self.log_file = None
+        self.show_logging = False
         self.time_str = time_str      
         self.dir_path = os.path.join("Result", self.time_str)
         
@@ -35,8 +36,13 @@ class Logger():
 
         with open(self.log_file, 'w') as file:
             json.dump(data_origin, file, indent=4)
-
-        console = Console()
-        text = f"Data appended successfully to '{self.log_file}'."
-        panel = Panel(text, title="Logger Info", border_style="bold blue")
-        console.print(panel)
+            
+        if self.show_logging:
+            console = Console()
+            text = f"Data appended successfully to '{self.log_file}'."
+            panel = Panel(text, title="Logger Info", border_style="bold blue")
+            console.print(panel)
+        
+    
+    def SetLoggingDisplay(self, show_logging):
+        self.shwo_logging = show_logging

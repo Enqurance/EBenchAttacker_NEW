@@ -28,7 +28,7 @@ class OpenAIMutatorBase(Mutator):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):
@@ -51,7 +51,7 @@ class OpenAIMutatorGenerateSimilar(OpenAIMutatorBase):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):
@@ -77,7 +77,7 @@ class OpenAIMutatorCrossOver(OpenAIMutatorBase):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):
@@ -105,7 +105,7 @@ class OpenAIMutatorExpand(OpenAIMutatorBase):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):
@@ -131,7 +131,7 @@ class OpenAIMutatorShorten(OpenAIMutatorBase):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):
@@ -157,7 +157,7 @@ class OpenAIMutatorRephrase(OpenAIMutatorBase):
     def __init__(self,
                  model,
                  temperature: int = 1,
-                 max_tokens: int = 512,
+                 max_tokens: int = 128,
                  max_trials: int = 5,
                  failure_sleep_time: int = 5,
                  fuzzer: 'GPTFuzzer' = None):

@@ -72,6 +72,8 @@ class GPTFuzzer:
         energy: int = 1,
         time_str: str = "_",
         target_name: str = None,
+        target_max_tokens = 256,
+        early_stop: bool = False
     ):
 
         self.question = question
@@ -91,18 +93,17 @@ class GPTFuzzer:
         self.mutate_policy = mutate_policy
         self.select_policy = select_policy
 
-        self.current_query: int = 0
         self.current_jailbreak: int = 0
-        self.current_reject: int = 0
         self.current_iteration: int = 0
 
-        self.max_query: int = max_query
         self.max_jailbreak: int = max_jailbreak
-        self.max_reject: int = max_reject
         self.max_iteration: int = max_iteration
+        
         self.time_str = time_str
         self.target_name = target_name
         self.energy: int = energy
+        self.target_max_tokens = target_max_tokens
+        self.early_stop = early_stop
         self.Setup()
         
 
@@ -113,20 +114,26 @@ class GPTFuzzer:
 
     def Stop(self):
         checks = [
-            ('max_query', 'current_query'),
             ('max_jailbreak', 'current_jailbreak'),
-            ('max_reject', 'current_reject'),
             ('max_iteration', 'current_iteration'),
         ]
+        print("current jailbreak" + str(self.current_jailbreak))
+        print("max jailbreak" + str(self.max_jailbreak))
         return any(getattr(self, max_attr) != -1 and getattr(self, curr_attr) >= getattr(self, max_attr) for max_attr, curr_attr in checks)
 
     def run(self):
         try:
             while self.current_iteration < self.max_iteration:
+                print(self.current_jailbreak)
+                print(f"""\n{'='*36}\nFuzzing Iteration: {self.current_iteration}\n{'='*36}""")
                 seed = self.select_policy.select()
                 mutated_results = self.mutate_policy.mutate_single(seed)
                 self.Evaluate(mutated_results)
                 self.Update(mutated_results)
+                
+                # Early stopping
+                if self.Stop() and self.early_stop:
+                    break
         except KeyboardInterrupt:
             raise("Keyboard interrupted by user")
 
@@ -141,7 +148,7 @@ class GPTFuzzer:
                 prompt_node.response = None
                 prompt_node.results = {}
                 break
-            response = self.target_model.Generate(prompt)
+            response = self.target_model.Generate(prompt, max_tokens=self.target_max_tokens)
             prompt_node.response = response
             judge_result = self.judge_model.Judge(self.question, response, self.id_, prompt)
             prompt_node.results = judge_result
@@ -150,8 +157,6 @@ class GPTFuzzer:
             prompt_node.Update(judge_result)
             self.logger.Log(judge_result)
             self.current_jailbreak += prompt_node.num_jailbreak
-            self.current_query += prompt_node.num_query
-            self.current_reject += prompt_node.num_reject
             
 
     def Update(self, prompt_nodes: 'list[PromptNode]'):

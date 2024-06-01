@@ -10,7 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from ModelLoader import LoadTokenizerAndModel, LoadAPIModel
 from Tools import PrintWithBorders, GetTime, Logger
-from Attacks import PAIRAttack, GPTFUZZERAttack
+from Attacks import DirectAttack, MultilingualAttack, PAIRAttack, GPTFUZZERAttack
 from Judge import Judger
 
 
@@ -28,20 +28,32 @@ parser.add_argument('--attacks',type=str, nargs='+',
                     choices=['Direct', 'Multilingual', 'PAIR', 'GPTFUZZER', 'GCG', 'GCG_Transfer', 'AutoDAN', 'Visual'],
                     help='This list assigns the methods for attacking')
 
-parser.add_argument('--pair_attacker',type=str, default="LLaMA-2-7B-chat-hf",
-                    help='This list assigns the attacker model for PAIR method')
+parser.add_argument('--direct_language', type=str, default="English",
+                    help='This string assigns the language for Direct Attack method')
+
+parser.add_argument('--direct_judger', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the judger for Direct Attack method')
+
+parser.add_argument('--multilingual_mask', type=str, default="11111110",
+                    help='This argument accepts a binary string')
+
+parser.add_argument('--multilingual_judger', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the judger for Direct Attack method')
+
+parser.add_argument('--pair_attacker',type=str, default="Vicuna-13B-v1.5",
+                    help='This string assigns the attacker model for PAIR method')
 
 parser.add_argument('--pair_judger',type=str, default="GPT-3.5-Turbo-0125",
-                    help='This list assigns the attacker model for PAIR method')
+                    help='This string assigns the attacker model for PAIR method')
 
 parser.add_argument('--gptfuzzer_model', type=str, default="GPT-3.5-Turbo-0125",
-                    help='This list assigns the fuzzer model for GPTFUZZER method')
+                    help='This string assigns the fuzzer model for GPTFUZZER method')
 
 parser.add_argument('--gptfuzzer_judge_model', type=str, default="GPT-3.5-Turbo-0125",
-                    help='This list assigns the fuzzer model for GPTFUZZER method')
+                    help='This string assigns the fuzzer model for GPTFUZZER method')
 
 model_args = {
-    "max_length": 256,
+    "max_length": 128,
     "temperature": 0.9,
     "do_sample": True,
 }
@@ -84,7 +96,7 @@ def LoadEBenchDataset():
 
 def LoadSingleModel(model_info):
     model_name = model_info["Model_Name"]
-    print(model_name)
+
     if model_name in model_loaded.keys():
         PrintWithBorders("Model " + model_name + " already loaded!")
         return model_loaded[model_name]
@@ -121,7 +133,29 @@ def main():
             
             # Begin testing one model here
             for attack in args.attacks:
-                if attack.lower() == "pair":
+                if attack.lower() == "direct":
+                    # Load judge model for Direct Attack
+                    judge_model_info = GetModelInfo(args.direct_judger, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # Start Direct Attack
+                    DirectAttack(target_model, judge_model, data, logger, language=args.direct_language)
+                    
+                elif attack.lower() == "multilingual":
+                    # Load mask for Multilingual Attack:
+                    # 1 indicates the language to be tested,
+                    # 0 indicates the language not to be tested
+                    language_mask = int(args.multilingual_mask, 2)
+                    print(language_mask)
+                    
+                    # Load judge model for Multilingual Attack
+                    judge_model_info = GetModelInfo(args.direct_judger, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # Start Multilingual Attack
+                    MultilingualAttack(target_model, judge_model, data, language_mask, logger)
+                
+                elif attack.lower() == "pair":
                     # Load attacker model for PAIR
                     attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
                     attack_model = LoadSingleModel(attacker_model_info)
