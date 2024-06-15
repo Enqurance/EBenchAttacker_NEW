@@ -6,6 +6,8 @@ dependencies:
   - _openmp_mutex=5.1=1_gnu
   - bzip2=1.0.8=h5eee18b_6
   - ca-certificates=2024.3.11=h06a4308_0
+  - click=8.1.7=py310h06a4308_0
+  - joblib=1.4.2=py310h06a4308_0
   - ld_impl_linux-64=2.38=h1181459_1
   - libffi=3.3=he6710b0_2
   - libgcc-ng=11.2.0=h1234567_1
@@ -13,6 +15,7 @@ dependencies:
   - libstdcxx-ng=11.2.0=h1234567_1
   - libuuid=1.41.5=h5eee18b_0
   - ncurses=6.4=h6a678d5_0
+  - nltk=3.8.1=py310h06a4308_0
   - openssl=1.1.1w=h7f8727e_0
   - pip=24.0=py310h06a4308_0
   - python=3.10.0=h12debd9_5
@@ -20,6 +23,7 @@ dependencies:
   - setuptools=69.5.1=py310h06a4308_0
   - sqlite=3.45.3=h5eee18b_0
   - tk=8.6.14=h39e8969_0
+  - tqdm=4.66.4=py310h2f386ee_0
   - wheel=0.43.0=py310h06a4308_0
   - xz=5.4.6=h5eee18b_1
   - zlib=1.2.13=h5eee18b_1
@@ -90,7 +94,6 @@ dependencies:
       - sympy==1.12.1
       - tokenizers==0.19.1
       - torch==2.3.0
-      - tqdm==4.66.4
       - transformers==4.41.2
       - triton==2.3.0
       - typing-extensions==4.12.0
