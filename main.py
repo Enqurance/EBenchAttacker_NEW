@@ -10,7 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from ModelLoader import LoadTokenizerAndModel, LoadAPIModel
 from Tools import PrintWithBorders, GetTime, Logger
-from Attacks import DirectAttack, MultilingualAttack, PAIRAttack, GPTFUZZERAttack
+from Attacks import DirectAttack, MultilingualAttack, GPTFUZZERAttack, PAIRAttack, AutoDANAttack
 from Judge import Judger
 
 
@@ -25,14 +25,29 @@ parser.add_argument('--dataset', type=str, default="Test", choices=["Haiku", "So
                     help='This argument assigns the size of EBench dataset to use')
 
 parser.add_argument('--attacks',type=str, nargs='+', 
-                    choices=['Direct', 'Multilingual', 'PAIR', 'GPTFUZZER', 'GCG', 'GCG_Transfer', 'AutoDAN', 'Visual'],
+                    choices=['AutoDAN', 'Direct', 'Multilingual', 'PAIR', 'GPTFUZZER', 'GCG', 'GCGTransfer', 'AutoDAN', 'Visual'],
                     help='This list assigns the methods for attacking')
+
+parser.add_argument('--autodan_judger', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the judger for AutoDAN Attack method')
+
+parser.add_argument('--autodan_mutator', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the mutator model for AutoDAN Attack method')
 
 parser.add_argument('--direct_language', type=str, default="English",
                     help='This string assigns the language for Direct Attack method')
 
 parser.add_argument('--direct_judger', type=str, default="GPT-3.5-Turbo-0125",
                     help='This string assigns the judger for Direct Attack method')
+
+parser.add_argument('--gcg_judge_model', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the judge model for GCG method')
+
+parser.add_argument('--gptfuzzer_model', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the fuzzer model for GPTFUZZER method')
+
+parser.add_argument('--gptfuzzer_judge_model', type=str, default="GPT-3.5-Turbo-0125",
+                    help='This string assigns the fuzzer model for GPTFUZZER method')
 
 parser.add_argument('--multilingual_mask', type=str, default="11111110",
                     help='This argument accepts a binary string')
@@ -45,12 +60,6 @@ parser.add_argument('--pair_attacker',type=str, default="Vicuna-13B-v1.5",
 
 parser.add_argument('--pair_judger',type=str, default="GPT-3.5-Turbo-0125",
                     help='This string assigns the attacker model for PAIR method')
-
-parser.add_argument('--gptfuzzer_model', type=str, default="GPT-3.5-Turbo-0125",
-                    help='This string assigns the fuzzer model for GPTFUZZER method')
-
-parser.add_argument('--gptfuzzer_judge_model', type=str, default="GPT-3.5-Turbo-0125",
-                    help='This string assigns the fuzzer model for GPTFUZZER method')
 
 model_args = {
     "max_length": 128,
@@ -133,7 +142,23 @@ def main():
             
             # Begin testing one model here
             for attack in args.attacks:
-                if attack.lower() == "direct":
+                if attack.lower() == "autodan":
+                    # Load mutator model for AutoDAN Attack
+                    mutator_model_info = GetModelInfo(args.autodan_mutator, models_info)
+                    mutator_model = LoadSingleModel(mutator_model_info)
+                    
+                    # Load judge model for AutoDAN Attack
+                    judge_model_info = GetModelInfo(args.autodan_judger, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # Start AutoDAN Attack
+                    AutoDANAttack(target_model, mutator_model, judge_model, data, logger, language=args.direct_language)
+                    
+                    # Release memory
+                    del judge_model
+                    torch.cuda.empty_cache()
+                    pass
+                elif attack.lower() == "direct":
                     # Load judge model for Direct Attack
                     judge_model_info = GetModelInfo(args.direct_judger, models_info)
                     judge_model = Judger(LoadSingleModel(judge_model_info))
@@ -141,12 +166,15 @@ def main():
                     # Start Direct Attack
                     DirectAttack(target_model, judge_model, data, logger, language=args.direct_language)
                     
+                    # Release memory
+                    del judge_model
+                    torch.cuda.empty_cache()
+                    
                 elif attack.lower() == "multilingual":
                     # Load mask for Multilingual Attack:
                     # 1 indicates the language to be tested,
                     # 0 indicates the language not to be tested
                     language_mask = int(args.multilingual_mask, 2)
-                    print(language_mask)
                     
                     # Load judge model for Multilingual Attack
                     judge_model_info = GetModelInfo(args.direct_judger, models_info)
@@ -154,7 +182,34 @@ def main():
                     
                     # Start Multilingual Attack
                     MultilingualAttack(target_model, judge_model, data, language_mask, logger)
-                
+                    
+                    # Release memory
+                    del judge_model
+                    torch.cuda.empty_cache()
+                    
+                elif attack.lower() == "gptfuzzer":
+                    # Load fuzz model for GPTFUZZER
+                    fuzz_model_info = GetModelInfo(args.gptfuzzer_model, models_info)
+                    fuzz_model = LoadSingleModel(fuzz_model_info)
+                    
+                    # Load judge model for GPTFUZZER
+                    judge_model_info = GetModelInfo(args.gptfuzzer_judge_model, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # Start attacking with GPTFUZZER
+                    GPTFUZZERAttack(fuzz_model, target_model, judge_model, data, logger)
+                    
+                    # Release memory
+                    del fuzz_model, judge_model
+                    torch.cuda.empty_cache()
+
+                elif attack.lower() == "gcg":
+                    # Load judge model for GCG
+                    judge_model_info = GetModelInfo(args.gcg_judge_model, models_info)
+                    judge_model = Judger(LoadSingleModel(judge_model_info))
+                    
+                    # GCGAttack(target_model, judge_model, data, logger)
+                    
                 elif attack.lower() == "pair":
                     # Load attacker model for PAIR
                     attacker_model_info = GetModelInfo(args.pair_attacker, models_info)
@@ -170,23 +225,12 @@ def main():
                     # Release memory
                     del attack_model, judge_model
                     torch.cuda.empty_cache()
-
-                elif attack.lower() == "gptfuzzer":
-                    # Load fuzz model for GPTFUZZER
-                    fuzz_model_info = GetModelInfo(args.gptfuzzer_model, models_info)
-                    fuzz_model = LoadSingleModel(fuzz_model_info)
-                    
-                    # Load judge model for GPTFUZZER
-                    judge_model_info = GetModelInfo(args.gptfuzzer_judge_model, models_info)
-                    judge_model = Judger(LoadSingleModel(judge_model_info))
-                    
-                    # Start attacking with GPTFUZZER
-                    GPTFUZZERAttack(fuzz_model, target_model, judge_model, data, logger)
                     
                 
             del target_model
             torch.cuda.empty_cache()
         
 if __name__ == "__main__":
+    # import debugpy; debugpy.connect(('localhost', 5678))
     args = parser.parse_args()
     main()

@@ -52,10 +52,12 @@ def PAIRAttack(attack_model, target_model, judge_model, data, logger, language="
             for i, conv in enumerate(convs_list):
                 conv.messages = conv.messages[-2*(keep_last_n):]
             
+            logger.Log(judge_result)
+            
             # Early stopping
             if judge_result["Judge_Result"] == 1 and early_stopping:
                 break
-            logger.Log(judge_result)
+            
 
 def GetAttack(model, convs_list, prompts_list):
         """
